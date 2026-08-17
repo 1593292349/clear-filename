@@ -1,0 +1,12 @@
+{
+  "name": "clear-filename",
+  "version": "1.0.0",
+  "description": "搜索并删除 Windows 文件名痕迹（文件系统/回收站/最近使用/注册表 MRU/跳转列表/搜索索引/应用 MRU）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

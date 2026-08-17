@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>clear-filename 文件名痕迹清理</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>clear-filename</h1>
+    <span class="subtitle">Windows 文件名痕迹搜索与清理</span>
+  </header>
+
+  <main>
+    <section class="panel search-bar">
+      <label for="regex">正则表达式</label>
+      <input id="regex" type="text" placeholder="(JavaScript 正则语法)" autocomplete="off">
+      <button id="btn-search" class="primary">搜索</button>
+      <button id="btn-delete" class="danger">删除选中</button>
+    </section>
+
+    <section class="panel sources">
+      <span class="sources-title">搜索来源：</span>
+      <label><input type="checkbox" data-source="filesystem" checked> 文件系统（全盘）</label>
+      <label><input type="checkbox" data-source="recyclebin" checked> 回收站记录</label>
+      <label><input type="checkbox" data-source="recent" checked> 最近使用 .lnk</label>
+      <label><input type="checkbox" data-source="registry" checked> 注册表 MRU</label>
+      <label><input type="checkbox" data-source="registry_extra" checked> 注册表扩展（对话框/WPS/Office/压缩软件）</label>
+      <label><input type="checkbox" data-source="jumplist" checked> 跳转列表</label>
+      <label><input type="checkbox" data-source="searchindex" checked> 搜索索引</label>
+      <label><input type="checkbox" data-source="appmru" checked> 应用 MRU</label>
+      <label><input type="checkbox" data-source="browserdl" checked> 浏览器下载历史</label>
+      <label><input type="checkbox" data-source="prefetch" checked> Prefetch</label>
+    </section>
+
+    <section class="panel">
+      <div class="result-head">
+        <span id="stat">未搜索</span>
+        <span class="hint">删除前请确认目标；不可直接删除的条目需手动处理</span>
+      </div>
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" id="check-all" title="全选可删除项"></th>
+            <th class="col-source">来源</th>
+            <th class="col-name">名称</th>
+            <th class="col-loc">位置</th>
+            <th class="col-match">匹配片段</th>
+            <th class="col-hint">删除方式</th>
+            <th class="col-status">状态</th>
+          </tr>
+        </thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <section class="panel system-panel">
+    <div class="result-head">
+      <span id="sys-title">系统级清理（需管理员权限）</span>
+      <span class="hint">请以管理员身份运行本服务，否则会拒绝访问</span>
+    </div>
+    <div class="sys-buttons">
+      <label>盘符 <input id="sys-drive" type="text" value="C:" maxlength="2" style="width:44px;padding:4px 6px;border:1px solid #d0d7de;border-radius:4px;"></label>
+      <button id="btn-usn" class="warn">清空 USN Journal</button>
+      <button id="btn-vss" class="warn">删除全部卷影副本</button>
+      <button id="btn-cipher" class="warn">覆盖磁盘空闲空间</button>
+    </div>
+    <pre id="sys-output" class="sys-output"></pre>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
