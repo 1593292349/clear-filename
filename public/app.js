@@ -154,6 +154,7 @@
     ['#btn-usn', 'usn', '确认清空 USN Journal？\nEverything 等工具需全量重建索引；此操作影响整个盘。'],
     ['#btn-vss', 'vss', '确认删除该盘全部卷影副本？\n系统还原点和备份快照将全部清除。'],
     ['#btn-cipher', 'cipher', '确认覆盖磁盘空闲空间？\n耗时极长（视盘大小可达数小时），期间请勿关机。'],
+    ['#btn-evtx', 'eventlog', '确认清空安全事件日志？\n全部安全审计记录（含文件系统审计）将清除，不可恢复。'],
   ];
   for (const [sel, op, tip] of SYS_OPS) {
     document.querySelector(sel).addEventListener('click', async () => {

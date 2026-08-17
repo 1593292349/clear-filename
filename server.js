@@ -14,6 +14,9 @@ const SEARCHERS = {
   appmru: require('./lib/search/appmru'),
   browserdl: require('./lib/search/browserdl'),
   prefetch: require('./lib/search/prefetch'),
+  jetbrains: require('./lib/search/jetbrains'),
+  eventlog: require('./lib/search/eventlog'),
+  filemgr: require('./lib/search/filemgr'),
 };
 
 const SOURCE_LABELS = {
@@ -27,6 +30,9 @@ const SOURCE_LABELS = {
   appmru: '应用 MRU',
   browserdl: '浏览器下载历史',
   prefetch: 'Prefetch',
+  jetbrains: 'JetBrains IDE',
+  eventlog: '安全事件日志',
+  filemgr: '文件管理器(TC)',
 };
 
 const PORT = process.env.PORT || 8300;

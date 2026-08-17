@@ -86,26 +86,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 #stat { font-weight: 600; }
 .hint { color: #6a737d; font-size: 12px; }
 
-table { width: 100%; border-collapse: collapse; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th, td {
   padding: 6px 8px;
   border-bottom: 1px solid #eaecef;
   text-align: left;
   vertical-align: top;
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-th { background: #f6f8fa; font-weight: 600; white-space: nowrap; }
+th { background: #f6f8fa; font-weight: 600; }
 tr:hover td { background: #f6f8fa; }
 tr.deleted td { color: #999; text-decoration: line-through; }
 tr.error td { color: #cf222e; }
 
-.col-check { width: 32px; }
-.col-source { width: 110px; white-space: nowrap; }
-.col-name { width: 220px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-loc { width: 32%; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-match { width: 22%; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-hint { width: 22%; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #57606a; }
-.col-status { width: 90px; white-space: nowrap; }
+.col-check { width: 3%; }
+.col-source { width: 12%; }
+.col-name { width: 14%; }
+.col-loc { width: 27%; }
+.col-match { width: 20%; }
+.col-hint { width: 18%; color: #57606a; }
+.col-status { width: 6%; }
 
 .badge {
   display: inline-block;
