@@ -2,7 +2,12 @@
 (() => {
   const $ = (sel) => document.querySelector(sel);
 
-  const state = { items: [], running: false };
+  const state = { items: [], running: false, elapsed: 0 };
+
+  // 搜索耗时（秒），仅在搜索完成后展示
+  function elapsedText() {
+    return state.elapsed ? `，耗时 ${state.elapsed.toFixed(1)} 秒` : '';
+  }
 
   const $regex = $('#regex');
   const $btnSearch = $('#btn-search');
@@ -10,6 +15,8 @@
   const $checkAll = $('#check-all');
   const $tbody = $('#result-body');
   const $stat = $('#stat');
+  const $spinner = $('#stat-spinner');
+  const $ignoreCase = $('#ignore-case');
   const $toast = $('#toast');
 
   let toastTimer = null;
@@ -91,12 +98,12 @@
     const items = state.items;
     if (!items.length) {
       $tbody.innerHTML = '<tr><td colspan="7" class="empty">无结果</td></tr>';
-      $stat.textContent = '未搜索';
+      $stat.textContent = '共 0 条' + elapsedText();
       return;
     }
     const deletable = items.filter((i) => i.deletable).length;
     const extra = state.truncated ? `（结果过多，仅显示前 ${items.length} 条，请用更精确的正则）` : '';
-    $stat.textContent = `共 ${state.total} 条（可删除 ${deletable} 条）${extra}`;
+    $stat.textContent = `共 ${state.total} 条（可删除 ${deletable} 条）${elapsedText()}${extra}`;
     let i = 0;
     const next = () => {
       const end = Math.min(i + RENDER_BATCH, items.length);
@@ -117,30 +124,38 @@
   $btnSearch.addEventListener('click', async () => {
     const regex = $regex.value.trim();
     if (!regex) { toast('请输入正则表达式'); return; }
+    const ignoreCase = $ignoreCase.checked;
     let testRe;
-    try { testRe = new RegExp(regex); } catch (e) { toast('正则无效: ' + e.message); return; }
+    try { testRe = new RegExp(regex, ignoreCase ? 'i' : ''); } catch (e) { toast('正则无效: ' + e.message); return; }
     state.running = true;
+    const t0 = performance.now();
     $btnSearch.disabled = true;
+    $btnSearch.textContent = '搜索中…';
+    $spinner.classList.remove('hidden');
     $stat.textContent = '搜索中…（全盘扫描可能需要几分钟）';
     try {
       const resp = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regex, sources: selectedSources() }),
+        body: JSON.stringify({ regex, sources: selectedSources(), ignoreCase }),
       });
       const data = await resp.json();
-      if (!resp.ok) { toast(data.error || '搜索失败'); return; }
+      if (!resp.ok) { toast(data.error || '搜索失败'); $stat.textContent = '搜索失败'; return; }
       state.items = data.results;
       state.total = data.total;
       state.truncated = !!data.truncated;
+      state.elapsed = (performance.now() - t0) / 1000;
       render();
       updateCheckAll();
       toast(`搜索完成：共 ${data.total} 条${state.truncated ? '（已截断显示）' : ''}`);
     } catch (e) {
       toast('搜索请求失败: ' + e.message);
+      $stat.textContent = '搜索失败';
     } finally {
       state.running = false;
       $btnSearch.disabled = false;
+      $btnSearch.textContent = '搜索';
+      $spinner.classList.add('hidden');
     }
   });
 
@@ -150,11 +165,32 @@
 
   // 系统级清理操作
   const $sysOutput = $('#sys-output');
+
+  // 盘符下拉：取后端返回的实际盘符；失败时保留 HTML 里的 C: 兜底
+  (async () => {
+    try {
+      const resp = await fetch('/api/drives');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const drives = Array.isArray(data.drives) ? data.drives : [];
+      if (!drives.length) return;
+      const sel = $('#sys-drive');
+      sel.innerHTML = '';
+      for (const d of drives) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        sel.appendChild(opt);
+      }
+    } catch { /* 保留兜底选项 */ }
+  })();
+
   const SYS_OPS = [
     ['#btn-usn', 'usn', '确认清空 USN Journal？\nEverything 等工具需全量重建索引；此操作影响整个盘。'],
     ['#btn-vss', 'vss', '确认删除该盘全部卷影副本？\n系统还原点和备份快照将全部清除。'],
     ['#btn-cipher', 'cipher', '确认覆盖磁盘空闲空间？\n耗时极长（视盘大小可达数小时），期间请勿关机。'],
     ['#btn-evtx', 'eventlog', '确认清空安全事件日志？\n全部安全审计记录（含文件系统审计）将清除，不可恢复。'],
+    ['#btn-wpsrecent', 'wpsrecent', '确认清理 WPS 表格的最近文件列表？\n整键删除 HKCU\\Software\\kingsoft\\Office\\6.0\\et\\RecentFiles，WPS「最近使用」记录全部清空且不可恢复；建议先退出 WPS 再执行。'],
   ];
   for (const [sel, op, tip] of SYS_OPS) {
     document.querySelector(sel).addEventListener('click', async () => {

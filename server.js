@@ -2,37 +2,44 @@ const express = require('express');
 const path = require('path');
 const { doDelete } = require('./lib/delete');
 const { runSystem } = require('./lib/system');
+const { listDrives } = require('./lib/search/filesystem');
 
 const SEARCHERS = {
   filesystem: require('./lib/search/filesystem'),
+  usn: require('./lib/search/usn'),
   recyclebin: require('./lib/search/recyclebin'),
   recent: require('./lib/search/recent'),
-  registry: require('./lib/search/registry'),
-  registry_extra: require('./lib/search/registry_extra'),
-  jumplist: require('./lib/search/jumplist'),
+  registry: require('./lib/search/registry_full'),
   searchindex: require('./lib/search/searchindex'),
   appmru: require('./lib/search/appmru'),
   browserdl: require('./lib/search/browserdl'),
+  amcache: require('./lib/search/amcache'),
   prefetch: require('./lib/search/prefetch'),
-  jetbrains: require('./lib/search/jetbrains'),
   eventlog: require('./lib/search/eventlog'),
   filemgr: require('./lib/search/filemgr'),
+  evrun: require('./lib/search/evrun'),
+  chromedl: require('./lib/search/chromedl'),
+  wpsqing: require('./lib/search/wpsqing'),
+  qqpcdlp: require('./lib/search/qqpcdlp'),
 };
 
 const SOURCE_LABELS = {
-  filesystem: '文件系统（全盘）',
-  recyclebin: '回收站记录',
-  recent: '最近使用 .lnk',
-  registry: '注册表 MRU',
-  registry_extra: '注册表扩展',
-  jumplist: '跳转列表',
+  filesystem: '文件系统',
+  usn: 'USN',
+  recyclebin: '回收站',
+  recent: '最近访问',
+  registry: '注册表',
   searchindex: '搜索索引',
-  appmru: '应用 MRU',
-  browserdl: '浏览器下载历史',
+  appmru: 'IDE',
+  browserdl: '浏览器',
+  amcache: 'Amcache',
   prefetch: 'Prefetch',
-  jetbrains: 'JetBrains IDE',
-  eventlog: '安全事件日志',
-  filemgr: '文件管理器(TC)',
+  eventlog: '事件日志',
+  filemgr: '文件管理器',
+  evrun: 'Everything 历史',
+  chromedl: '下载记录库',
+  wpsqing: 'WPS 云同步',
+  qqpcdlp: '电脑管家记录',
 };
 
 const PORT = process.env.PORT || 8300;
@@ -40,35 +47,23 @@ const app = express();
 app.use(express.json({ limit: '4mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 归一化条目：截断超长文本，防止前端渲染卡死
-const MAX_RESULTS = 2000;
-const MAX_PER_SOURCE = 500;
-const MAX_TEXT = 300;
+// 系统级清理的盘符下拉：返回本机实际存在的盘符（不带反斜杠）
+app.get('/api/drives', (req, res) => {
+  res.json({ drives: listDrives().map((d) => d.replace(/\\+$/, '')) });
+});
 
-function truncate(s, n) {
-  s = String(s || '');
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
-
-function normalize(item) {
-  return {
-    ...item,
-    name: truncate(item.name, 120),
-    location: truncate(item.location, 300),
-    match: truncate(item.match, 300),
-    deleteHint: truncate(item.deleteHint, 200),
-  };
-}
+// 极端保护：仅当匹配条数超过 10 万时截断并明确告知前端；正常搜索全部返回，不做每源配额
+const MAX_RESULTS = 100000;
 
 // 搜索：按正则匹配各来源
 app.post('/api/search', async (req, res) => {
-  const { regex, sources } = req.body || {};
+  const { regex, sources, ignoreCase } = req.body || {};
   if (typeof regex !== 'string' || !regex.trim()) {
     return res.status(400).json({ error: '请输入正则表达式' });
   }
   let re;
   try {
-    re = new RegExp(regex);
+    re = new RegExp(regex, ignoreCase === false ? '' : 'i');
   } catch (e) {
     return res.status(400).json({ error: '正则无效: ' + e.message });
   }
@@ -90,19 +85,11 @@ app.post('/api/search', async (req, res) => {
       }
     });
   const groups = await Promise.all(tasks);
-  const all = groups.flat().map(normalize);
-  // 每源限流，避免单个来源（如全盘文件）淹没其他来源的命中
-  const perSource = new Map();
-  const capped = [];
-  for (const it of all) {
-    const c = perSource.get(it.source) || 0;
-    if (c >= MAX_PER_SOURCE) continue;
-    perSource.set(it.source, c + 1);
-    capped.push(it);
-  }
+  const all = groups.flat();
+  // 不做每源配额：所有命中全部返回，避免静默漏报（仅在极端数量下整体截断并告知前端）
   const total = all.length;
-  const truncated = capped.length > MAX_RESULTS;
-  const results = truncated ? capped.slice(0, MAX_RESULTS) : capped;
+  const truncated = all.length > MAX_RESULTS;
+  const results = truncated ? all.slice(0, MAX_RESULTS) : all;
   res.json({ results, truncated, total });
 });
 

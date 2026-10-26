@@ -16,60 +16,67 @@
     <section class="panel search-bar">
       <label for="regex">正则表达式</label>
       <input id="regex" type="text" placeholder="(JavaScript 正则语法)" autocomplete="off">
+      <label class="ignore-case"><input type="checkbox" id="ignore-case" checked> 忽略大小</label>
       <button id="btn-search" class="primary">搜索</button>
       <button id="btn-delete" class="danger">删除选中</button>
     </section>
 
     <section class="panel sources">
       <span class="sources-title">搜索来源：</span>
-      <label><input type="checkbox" data-source="filesystem" checked> 文件系统（全盘）</label>
-      <label><input type="checkbox" data-source="recyclebin" checked> 回收站记录</label>
-      <label><input type="checkbox" data-source="recent" checked> 最近使用 .lnk</label>
-      <label><input type="checkbox" data-source="registry" checked> 注册表 MRU</label>
-      <label><input type="checkbox" data-source="registry_extra" checked> 注册表扩展（对话框/WPS/Office/压缩软件）</label>
-      <label><input type="checkbox" data-source="jumplist" checked> 跳转列表</label>
-      <label><input type="checkbox" data-source="searchindex" checked> 搜索索引</label>
-      <label><input type="checkbox" data-source="appmru" checked> 应用 MRU</label>
-      <label><input type="checkbox" data-source="browserdl" checked> 浏览器下载历史</label>
-      <label><input type="checkbox" data-source="prefetch" checked> Prefetch</label>
-      <label><input type="checkbox" data-source="jetbrains" checked> JetBrains IDE</label>
-      <label><input type="checkbox" data-source="eventlog" checked> 安全事件日志</label>
-      <label><input type="checkbox" data-source="filemgr" checked> 文件管理器(TC)</label>
+      <label title="全盘扫描当前存在的文件名"><input type="checkbox" data-source="filesystem" checked> 文件系统</label>
+      <label title="NTFS 变更日志，需管理员权限"><input type="checkbox" data-source="usn" checked> USN</label>
+      <label title="回收站 $I 索引记录"><input type="checkbox" data-source="recyclebin" checked> 回收站</label>
+      <label title="Recent 目录的 .lnk 与跳转列表"><input type="checkbox" data-source="recent" checked> 最近访问</label>
+      <label title="计算机下全部根键：HKLM / HKCU / HKU / HKCC"><input type="checkbox" data-source="registry" checked> 注册表</label>
+      <label title="Windows 搜索索引 SYSTEMINDEX"><input type="checkbox" data-source="searchindex" checked> 搜索索引</label>
+      <label title="VSCode / Notepad++ / JetBrains 配置文件"><input type="checkbox" data-source="appmru" checked> IDE</label>
+      <label title="Chrome / Edge 全部 Profile 的历史与下载"><input type="checkbox" data-source="browserdl" checked> 浏览器</label>
+      <label title="程序兼容性缓存：exe 完整路径，需管理员权限"><input type="checkbox" data-source="amcache" checked> Amcache</label>
+      <label title="C:\Windows\Prefetch 执行记录"><input type="checkbox" data-source="prefetch" checked> Prefetch</label>
+      <label title="Security 文件访问审核 + Application 日志"><input type="checkbox" data-source="eventlog" checked> 事件日志</label>
+      <label title="Total Commander 的 wincmd.ini"><input type="checkbox" data-source="filemgr" checked> 文件管理器</label>
+      <label title="Everything 运行历史 CSV 中打开过的文件路径"><input type="checkbox" data-source="evrun" checked> Everything 历史</label>
+      <label title="Chrome / Edge 下载记录库 shared_proto_db 的残留路径"><input type="checkbox" data-source="chromedl" checked> 下载记录库</label>
+      <label title="WPS 云同步映射库 qing.db 的残留路径"><input type="checkbox" data-source="wpsqing" checked> WPS 云同步</label>
+      <label title="腾讯电脑管家文件扫描记录 QMDLPList.xml 中的路径"><input type="checkbox" data-source="qqpcdlp" checked> 电脑管家记录</label>
     </section>
 
-    <section class="panel">
+    <section class="panel results-panel">
       <div class="result-head">
-        <span id="stat">未搜索</span>
+        <span class="stat-box"><span id="stat-spinner" class="spinner hidden"></span><span id="stat">未搜索</span></span>
         <span class="hint">删除前请确认目标；不可直接删除的条目需手动处理</span>
       </div>
-      <table id="result-table">
-        <thead>
-          <tr>
-            <th class="col-check"><input type="checkbox" id="check-all" title="全选可删除项"></th>
-            <th class="col-source">来源</th>
-            <th class="col-name">名称</th>
-            <th class="col-loc">位置</th>
-            <th class="col-match">匹配片段</th>
-            <th class="col-hint">删除方式</th>
-            <th class="col-status">状态</th>
-          </tr>
-        </thead>
-        <tbody id="result-body"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table id="result-table">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="check-all" title="全选可删除项"></th>
+              <th class="col-source">来源</th>
+              <th class="col-name">名称</th>
+              <th class="col-loc">位置</th>
+              <th class="col-match">匹配片段</th>
+              <th class="col-hint">删除方式</th>
+              <th class="col-status">状态</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
   <section class="panel system-panel">
     <div class="result-head">
-      <span id="sys-title">系统级清理（需管理员权限）</span>
+      <span id="sys-title">系统级清理（除 WPS 最近列表外均需管理员权限）</span>
       <span class="hint">请以管理员身份运行本服务，否则会拒绝访问</span>
     </div>
     <div class="sys-buttons">
-      <label>盘符 <input id="sys-drive" type="text" value="C:" maxlength="2" style="width:44px;padding:4px 6px;border:1px solid #d0d7de;border-radius:4px;"></label>
+      <label>盘符 <select id="sys-drive" style="padding:5px 8px;font-size:13px;border:1px solid #d0d7de;border-radius:4px;background:#fff;min-width:64px;"><option value="C:">C:</option></select></label>
       <button id="btn-usn" class="warn">清空 USN Journal</button>
       <button id="btn-vss" class="warn">删除全部卷影副本</button>
       <button id="btn-cipher" class="warn">覆盖磁盘空闲空间</button>
       <button id="btn-evtx" class="warn">清空安全事件日志</button>
+      <button id="btn-wpsrecent" class="warn" title="整键删除 HKCU\Software\kingsoft\Office\6.0\et\RecentFiles（WPS 表格的最近使用列表），普通权限即可">清理 WPS 最近文件列表</button>
     </div>
     <pre id="sys-output" class="sys-output"></pre>
   </section>
